@@ -1,2 +1,24 @@
-# rust-ts-ext
-An extension of the `rust-ts-mode` with some functions that can replace an LSP in Emacs.
+* Overview
+
+The LSP is considered a standard in modern programming.  I do use it quite a bit with ~eglot~.  The problem is, however that I think that a lot of the editing can be made much more efficient if one doesn't rely on the LSP to do the heavy lifting for them.
+
+This package is a collection of macros that accomplish the fast and efficient programming workflow in Emacs, that one could have accomplished in /e.g./  ~cdlatex~, except for Rust.
+
+This package requires a fairly modern version of Emacs, supporting tree-sitter, as that provides the required level of context-sensitivity.
+
+* Installation
+
+I highly recommend using use-package with the ~:vc~ keyword, until this package is out of /alpha/.  At that point, it will be available on MELPA.
+
+#+BEGIN_SRC elisp
+  (use-package rust-ts-ext
+	:ensure t)
+#+END_SRC
+
+* Philsophy
+
+Much of the boilerplate in Rust boils down to repetitive keywords.  As such we borrow a few cues from ~cdlatex~ and provide you with shortcut, smart functions that do the right thing, depending on the context.
+
+A prototypical example is the function: ~rust/struct~.
+
+Based on context, this function can do a number of things.  By default, it will simply insert a tuple-struct scaffold with ~pub~ visibility.  Something you could do with ~yasnippet~.  
