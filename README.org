@@ -19,6 +19,129 @@ I highly recommend using use-package with the ~:vc~ keyword, until this package 
 
 Much of the boilerplate in Rust boils down to repetitive keywords.  As such we borrow a few cues from ~cdlatex~ and provide you with shortcut, smart functions that do the right thing, depending on the context.
 
-A prototypical example is the function: ~rust/struct~.
+A prototypical example is the function: ~rust/insert-struct~.
 
-Based on context, this function can do a number of things.  By default, it will simply insert a tuple-struct scaffold with ~pub~ visibility.  Something you could do with ~yasnippet~.  
+Based on context, this function can do a number of things.  By default, it will simply insert a braced struct  scaffold with ~pub~ visibility, and the point in the curly braces with an opened empty line.  Something you could do with ~yasnippet~.
+
+If you call that same function again here, it will prompt you for a string.  Feel free to enter something like ~my struct wrapper~.  When you do, three things will happen:
+1. A new variable named ~my_struct_wrapper~
+2. with the type ~MyStructWrapper~ will be created.
+3. A a new structure named ~MyStructWrapper~ will be created above the current scaffold.
+
+If you called that function having put in ~my_struct_wrapper~ into the curly braces of the first scaffold, the function will /not/ prompt you for a string, and just assume that *that* is the correct name.
+
+The same will work in the function arguments.
+
+If you are inside an enum, it would create a struct-like variant.  Not very impressive.
+
+You can already do that; a combinration of ~yasnippet~ and ~eglot~ can largely cover that.  And I encourage you to try them.  And then try this.  See why this is better?
+
+* Implemented functions
+
+** Insert family
+The functions largely fall into two categories, there are context-sensitive insert functions, which try to guess the best approximation of what you want to do in this case, and often only prompt for a name /only/ if they can't guess.  These are the functions
+- ~rust/insert-struct~
+- ~rust/insert-enum~
+- ~rust/insert-mod~
+- ~rust/insert-derive~
+- ~rust/insert-into~
+- ~rust/insert-clone~
+- ~rust/insert-result~
+- ~rust/insert-ok~
+- ~rust/insert-some~
+- ~rust/insert-map-err~
+- ~rust/insert-map~
+- ~rust/insert-async~
+- ~rust/insert-doc-ref~
+- ~rust/insert-test~
+- ~rust/insert-allow~
+- ~rust/insert-deny~
+- ~rust/insert-warn~
+- ~rust/insert-lambda~
+- ~rust/insert-match~
+- ~rust/insert-match-guard~
+- ~rust/insert-format-debug~
+- ~rust/insert-format-display~
+
+All of these functions will do something smart given the context.  I write quite a bit of Rust, so I get to be thoughtful.
+
+I do not provide default bindings.  But I can give you some ideas.
+
+One idea is to borrow from ~cdlatex~ and sacrifice the ~`~ key.  This way you can bind ~` m~ to ~rust/insert-map~ or ~rust/insert-map-err~ depending on your preference, and you are golden.
+
+** Convert family
+
+Another family of functions is provided to do frequent refactoring in one fell swoop.  This works best if you have all the structures in the current file, but I'm open to implemting them to work more like the LSP.
+
+One good example is ~rust/convert-tuple~ which is highly contextual.
+- Inside a curly braced struct, it gets rid of the names of all the fields, and converts named fields into positional fields.  This is dangerous, but sometimes useful if you have only one field.
+- Inside a function argument list, it will add a set of parentheses, and convert direct argument passing into destructuring in the function name.  Useful, if you want to reduce the number of arguments, or group them.
+
+There is
+- ~rust/convert-tuple~
+- ~rust/convert-struct~
+- ~rust/convert-newtype~
+- ~rust/convert-type-alias~
+- ~rust/convert-self~
+- ~rust/convert-destructure~
+- ~rust/convert-log-debug~
+- ~rust/convert-log-info~
+- ~rust/convert-log-warn~
+- ~rust/convert-log-error~
+- ~rust/convert-eprintln~
+- ~rust/convert-println~
+- ~rust/convert-dbg~
+- ~rust/convert-expect~
+- ~rust/convert-write~
+- ~rust/convert-format~
+- ~rust/convert-if-let~
+- ~rust/convert-match~
+
+
+** Casual declarative macros
+
+Taking inspiration from the casual suite, and the fact that for the life of me, I could not remember the syntax of declarative macros, I'm adding a transient that covers the most widely used patterns of declarative macros.
+
+This is not something that should exist, if declarative macros' syntax were good.   As it is not, I have to compensate.
+
+** Casual monadic errors
+
+I'm providing two transients: one for options and another for results.  The idea is that the monadic functions which do a great job at simplifying the code base, also kinda need some love.  I do encourage you to learn them, but you can learn by reading, and using this transient.
+
+** Casual iterators
+
+I'm adding a transient for iterators.
+
+** Cargo
+
+This is a collection of functions that would normally be invoked by ~rustic~.  That implementation does not work as well.  So I'm providing my own implementations.
+
+- ~rust/cargo-check~
+- ~rust/cargo-add~
+- ~rust/cargo-delete-lock~
+- ~rust/cargo-open-toml~
+- ~rust/cargo-bump-minor~
+- ~rust/cargo-bump-patch~
+- ~rust/cargo-bump-major~
+- ~rust/cargo-clippy~
+- ~rust/cargo-test~
+- ~rust/cargo-test-all~
+- ~rust/cargo-publish-transient~
+- ~rust/cargo-to-git~
+- ~rust/cargo-to-path~
+
+* Further work
+
+If you have a good idea, please open an issue.  I don't bite.
+
+* Contributing
+
+Feel free to take an issue marked with ~good-first-issue~ to get into the groove of things.  If there is a group of contributors, I'd be happy to give a tour of the code.
+
+* Non-features
+
+** Default keybindings
+
+I find that a lot of readmes nowhere near scratch the surface of a package's API.
+
+Most users don't discover packages for themselves, and never read before doing.  To combat this, I give you the tools to build a good rust editing experience.  This package is the functions, everything else is /you/.
