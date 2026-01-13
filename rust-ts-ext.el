@@ -1,4 +1,4 @@
-;;; rust-ts-ext -- Tree-sitter extensions for Rust
+;;; rust-ts-ext -- Tree-sitter extensions for Rust  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; The Tree-sitter allows limited forms of parsing of the code of the
@@ -14,28 +14,48 @@
 ;; standard, the information is already there, why not use it.
 
 ;;; Code:
-(defun rust-ts-ext-insert-impl-block ()
-  "Insert an `impl' block at point."
+(require 'rust-ts-mode)
+
+(defsubst treesit-node-inside-p (node type)
+  "Recurse up the tree of nodes to quickly check if a NODE is of TYPE and return the node."
+  (cond ((null node) nil)
+		((string= type (treesit-node-type node)) node)
+		(node (treesit-node-inside-p (treesit-node-parent node) type))))
+
+;; TODO: This looks like a use-case for `cond*'.
+;; TODO: This does not handle import statement structures.
+(defun rust-ts-ext-insert-impl-block-dwim ()
+  "Add impl block in Rust code."
   (interactive)
-  (let
-      ((name-of-struct
-		(treesit-node-text
-         (treesit-node-child-by-field-name
-          (treesit-node-inside-p
-		   (treesit-node-at (point))
-		   "struct_item")
-		  "name")
-		 t)))
-    (cond
-     (name-of-struct
-      (treesit-end-of-defun 1)
-      (newline)
-      (insert "impl ")
-      (insert name-of-struct))
-     ((and (or (bolp) (my:at-indentation))
-           (not (treesit-node-inside-p (treesit-node-at (point)) "function_item")))
-      (insert "impl ") (company-complete))
-     (t (self-insert-command 1)))))
+  (let*
+	  ((node
+		(or (treesit-node-inside-p (treesit-node-at (point)) "struct_item")
+			(treesit-node-inside-p (treesit-node-at (point)) "enum_item")))
+	   (name-of-struct
+		(treesit-node-text (treesit-node-child-by-field-name node "name")))
+	   (type-parameters
+		(treesit-node-text (treesit-node-child-by-field-name node "type_parameters"))))
+	(cond
+	 ((treesit-node-inside-p (treesit-node-at (point)) "impl_item")
+	  (message "TODO: Find the name of struct and identify the struct")
+	  )
+	 (name-of-struct
+	  (treesit-end-of-defun 1)
+	  (newline)
+	  (insert "impl")
+	  (when type-parameters (insert type-parameters))
+	  (insert " ")
+	  (insert name-of-struct)
+	  (when type-parameters (insert type-parameters))
+	  (insert " {\n\n}\n")
+	  (previous-line 2)
+	  (indent-for-tab-command))
+	 (t
+	  (unless (eolp) (end-of-line) (newline))
+	  (newline-and-indent)
+	  (insert "impl ")
+	  (save-excursion (insert " {\n\n}\n"))
+	  (complete-symbol nil)))))
 
 (defvar rust-ts-ext-default-error-type
   "Box<dyn std::error::Error>"
@@ -84,4 +104,24 @@ the final expression position, `insert' `Some`, the opening and closing parens, 
 			  (insert ")"))))
 	  (funcall-interactively 'my:rust:fn "fallible_function" "" "Result<(), Box<dyn std::error::Error>>"))))
 
+
+(defun rust-ts-ext-rename()
+  "Rename the structure item if looking at a structure item.
+
+Rename enumeration if looking at an enumeration."
+  (interactive))
+
+
+(defun rust-ts-ext-pub ()
+  "Cycle through visibility modifiers for Rust items."
+  (interactive)
+  (save-excursion
+	(back-to-indentation)
+	(if (looking-at "pub(crate) ")
+		(progn (replace-match "") (indent-for-tab-command))
+	  (if (looking-at "pub")
+		  (progn (forward-word) (insert "(crate)"))
+		(insert "pub ")))))
+
+(provide 'rust-ts-ext)
 ;;; rust-ts-ext.el ends here

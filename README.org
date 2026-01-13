@@ -40,28 +40,28 @@ You can already do that; a combinration of ~yasnippet~ and ~eglot~ can largely c
 
 ** Insert family
 The functions largely fall into two categories, there are context-sensitive insert functions, which try to guess the best approximation of what you want to do in this case, and often only prompt for a name /only/ if they can't guess.  These are the functions
-- ~rust/insert-struct~
-- ~rust/insert-enum~
-- ~rust/insert-mod~
-- ~rust/insert-derive~
-- ~rust/insert-into~
-- ~rust/insert-clone~
-- ~rust/insert-result~
-- ~rust/insert-ok~
-- ~rust/insert-some~
-- ~rust/insert-map-err~
-- ~rust/insert-map~
-- ~rust/insert-async~
-- ~rust/insert-doc-ref~
-- ~rust/insert-test~
-- ~rust/insert-allow~
-- ~rust/insert-deny~
-- ~rust/insert-warn~
-- ~rust/insert-lambda~
-- ~rust/insert-match~
-- ~rust/insert-match-guard~
-- ~rust/insert-format-debug~
-- ~rust/insert-format-display~
+- [ ] ~rust/insert-struct~
+- [ ] ~rust/insert-enum~
+- [ ] ~rust/insert-mod~
+- [ ] ~rust/insert-derive~
+- [ ] ~rust/insert-into~
+- [ ] ~rust/insert-clone~
+- [ ] ~rust/insert-result~
+- [ ] ~rust/insert-ok~
+- [ ] ~rust/insert-some~
+- [ ] ~rust/insert-map-err~
+- [ ] ~rust/insert-map~
+- [ ] ~rust/insert-async~
+- [ ] ~rust/insert-doc-ref~
+- [ ] ~rust/insert-test~
+- [ ] ~rust/insert-allow~
+- [ ] ~rust/insert-deny~
+- [ ] ~rust/insert-warn~
+- [ ] ~rust/insert-lambda~
+- [ ] ~rust/insert-match~
+- [ ] ~rust/insert-match-guard~
+- [ ] ~rust/insert-format-debug~
+- [ ] ~rust/insert-format-display~
 
 All of these functions will do something smart given the context.  I write quite a bit of Rust, so I get to be thoughtful.
 
@@ -78,24 +78,24 @@ One good example is ~rust/convert-tuple~ which is highly contextual.
 - Inside a function argument list, it will add a set of parentheses, and convert direct argument passing into destructuring in the function name.  Useful, if you want to reduce the number of arguments, or group them.
 
 There is
-- ~rust/convert-tuple~
-- ~rust/convert-struct~
-- ~rust/convert-newtype~
-- ~rust/convert-type-alias~
-- ~rust/convert-self~
-- ~rust/convert-destructure~
-- ~rust/convert-log-debug~
-- ~rust/convert-log-info~
-- ~rust/convert-log-warn~
-- ~rust/convert-log-error~
-- ~rust/convert-eprintln~
-- ~rust/convert-println~
-- ~rust/convert-dbg~
-- ~rust/convert-expect~
-- ~rust/convert-write~
-- ~rust/convert-format~
-- ~rust/convert-if-let~
-- ~rust/convert-match~
+- [ ] ~rust/convert-tuple~
+- [ ] ~rust/convert-struct~
+- [ ] ~rust/convert-newtype~
+- [ ] ~rust/convert-type-alias~
+- [ ] ~rust/convert-self~
+- [ ] ~rust/convert-destructure~
+- [ ] ~rust/convert-log-debug~
+- [ ] ~rust/convert-log-info~
+- [ ] ~rust/convert-log-warn~
+- [ ] ~rust/convert-log-error~
+- [ ] ~rust/convert-eprintln~
+- [ ] ~rust/convert-println~
+- [ ] ~rust/convert-dbg~
+- [ ] ~rust/convert-expect~
+- [ ] ~rust/convert-write~
+- [ ] ~rust/convert-format~
+- [ ] ~rust/convert-if-let~
+- [ ] ~rust/convert-match~
 
 
 ** Casual declarative macros
@@ -116,19 +116,19 @@ I'm adding a transient for iterators.
 
 This is a collection of functions that would normally be invoked by ~rustic~.  That implementation does not work as well.  So I'm providing my own implementations.
 
-- ~rust/cargo-check~
-- ~rust/cargo-add~
-- ~rust/cargo-delete-lock~
-- ~rust/cargo-open-toml~
-- ~rust/cargo-bump-minor~
-- ~rust/cargo-bump-patch~
-- ~rust/cargo-bump-major~
-- ~rust/cargo-clippy~
-- ~rust/cargo-test~
-- ~rust/cargo-test-all~
-- ~rust/cargo-publish-transient~
-- ~rust/cargo-to-git~
-- ~rust/cargo-to-path~
+- [ ]  ~rust/cargo-check~
+- [ ] ~rust/cargo-add~
+- [ ] ~rust/cargo-delete-lock~
+- [ ] ~rust/cargo-open-toml~
+- [ ] ~rust/cargo-bump-minor~
+- [ ] ~rust/cargo-bump-patch~
+- [ ] ~rust/cargo-bump-major~
+- [ ] ~rust/cargo-clippy~
+- [ ] ~rust/cargo-test~
+- [ ] ~rust/cargo-test-all~
+- [ ] ~rust/cargo-publish-transient~
+- [ ] ~rust/cargo-to-git~
+- [ ] ~rust/cargo-to-path~
 
 * Further work
 
