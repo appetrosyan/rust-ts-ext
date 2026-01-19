@@ -16,6 +16,12 @@
 ;;; Code:
 (require 'rust-ts-mode)
 
+(defsubst rust-ts-ext-at-indentation-p ()
+  "Return t if at indentation."
+  (interactive "P")
+  ;; TODO: consider making these more efficient
+  (string-match-p "^\\s-+$" (buffer-substring-no-properties (line-beginning-position) (point))))
+
 (defsubst treesit-node-inside-p (node type)
   "Recurse up the tree of nodes to quickly check if a NODE is of TYPE and return the node."
   (cond ((null node) nil)
@@ -37,8 +43,7 @@
 		(treesit-node-text (treesit-node-child-by-field-name node "type_parameters"))))
 	(cond
 	 ((treesit-node-inside-p (treesit-node-at (point)) "impl_item")
-	  (message "TODO: Find the name of struct and identify the struct")
-	  )
+	  (message "TODO: Find the name of struct and identify the struct"))
 	 (name-of-struct
 	  (treesit-end-of-defun 1)
 	  (newline)
@@ -59,7 +64,7 @@
 
 (defvar rust-ts-ext-default-error-type
   "Box<dyn std::error::Error>"
-  "The type that is used as a placeholder for `my:rust:ok'.  If in doubt, just use `Box<dyn std::error::Error>`.")
+  "The type that is used as a placeholder for `rust-ts-ext-ok'.  If in doubt, just use `Box<dyn std::error::Error>`.")
 
 (defun rust-ts-ext-insert-ok-dwim ()
   "Add OK at the end of the function call.
@@ -102,20 +107,40 @@ the final expression position, `insert' `Some`, the opening and closing parens, 
 			  (backward-up-list)
 			  (forward-sexp)
 			  (insert ")"))))
-	  (funcall-interactively 'my:rust:fn "fallible_function" "" "Result<(), Box<dyn std::error::Error>>"))))
+	  (funcall-interactively 'rust-ts-ext-fn "fallible_function" "" "Result<(), Box<dyn std::error::Error>>"))))
 
 
 (defun rust-ts-ext-rename()
   "Rename the structure item if looking at a structure item.
 
 Rename enumeration if looking at an enumeration."
-  (interactive))
+  (interactive)
+  (let ((fn-item (treesit-node-inside-p (treesit-node-at (point)) "function_item")))
+	(goto-char (treesit-node-start (treesit-node-child-by-field-name fn-item "name")))
+	(mark-sexp)))
+
+(defun rust-ts-ext-fn (&optional fn-name arguments return)
+  "Add fn item with the name FN-NAME(ARGUMENTS) -> RETURN."
+  (interactive)
+  (when (or (bolp) (rust-ts-ext-at-indentation-p))
+	(let ((function-name (if fn-name fn-name "function"))
+		  (return-clause (if return (concat " -> " return) "")))
+	  (progn
+		(insert "fn ")
+		(indent-for-tab-command)
+		(insert (format "%s(%s)%s {\n" function-name (or arguments "") return-clause))
+		(save-excursion
+		  (indent-for-tab-command)
+		  (insert "todo!()\n")
+		  (insert "}\n"))
+		(indent-for-tab-command)))))
 
 
 (defun rust-ts-ext-pub ()
   "Cycle through visibility modifiers for Rust items."
   (interactive)
   (save-excursion
+	;; FIXME: When inside enum with tuple elements the pub should **not** apply to the tuple elements, it should go inside.
 	(back-to-indentation)
 	(if (looking-at "pub(crate) ")
 		(progn (replace-match "") (indent-for-tab-command))
