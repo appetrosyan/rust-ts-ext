@@ -145,3 +145,9 @@ Feel free to take an issue marked with ~good-first-issue~ to get into the groove
 I find that a lot of readmes nowhere near scratch the surface of a package's API.
 
 Most users don't discover packages for themselves, and never read before doing.  To combat this, I give you the tools to build a good rust editing experience.  This package is the functions, everything else is /you/.
+
+** TODO Add way to bulk add workspace inheritance to crates
+
+** TODO Add way to extract any given structure into its own module
+
+** TODO Add way to convert module to crate
