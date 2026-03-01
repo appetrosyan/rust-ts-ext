@@ -213,6 +213,9 @@ PREFIX is prepended (e.g. \"Self\" or \"Self::VariantName\")."
 				 ")\n")))
 	  (_ (concat prefix "\n")))))
 
+;; TODO: This doesn't handle duplicate definitions correctly
+;; This doesn't properly handle if the point is on a struct identifier.
+;; This doesn't go-to-definition on the structure. We could fall back onto Dumb Jump
 (defun rust-ts-ext-insert-default ()
   "Insert an `impl Default' block for the struct or enum at point.
 
@@ -271,6 +274,134 @@ When no `new' is found:
 			(insert "todo!()\n")))))
 	  (insert "}\n}\n")
 	  (indent-region start (point)))))
+
+(defun rust-ts-ext--unquote (str)
+  "Remove surrounding double quotes from STR."
+  (if (and (>= (length str) 2)
+		   (eq (aref str 0) ?\")
+		   (eq (aref str (1- (length str))) ?\"))
+	  (substring str 1 -1)
+	str))
+
+(defun rust-ts-ext--fn-doc-comments (fn-node)
+  "Return doc comment nodes preceding FN-NODE, in document order.
+Skips over any attribute items between the doc comments and the function."
+  (let ((result '())
+		(prev (treesit-node-prev-sibling fn-node)))
+	(while (and prev (string= (treesit-node-type prev) "attribute_item"))
+	  (setq prev (treesit-node-prev-sibling prev)))
+	(while (and prev
+				(string= (treesit-node-type prev) "line_comment")
+				(string-prefix-p "///" (treesit-node-text prev)))
+	  (push prev result)
+	  (setq prev (treesit-node-prev-sibling prev)))
+	result))
+
+(defun rust-ts-ext-doc-panics ()
+  "Document panics for the function at point.
+
+Highlights every `unwrap' call in the function body with a warning face.
+Collects panic messages from `expect' and `panic!' statements and adds
+a `# Panics' section to the function's doc comment.
+
+If a `# Panics' section already exists, prompts the user before updating."
+  (interactive)
+  (let* ((fn-item (treesit-node-inside-p (treesit-node-at (point)) "function_item"))
+		 (body (and fn-item (treesit-node-child-by-field-name fn-item "body")))
+		 (unwraps '())
+		 (panic-messages '()))
+	(unless fn-item (user-error "Not inside a function"))
+	;; Clear previous panic highlights in this function
+	(dolist (ov (overlays-in (treesit-node-start body) (treesit-node-end body)))
+	  (when (overlay-get ov 'rust-ts-ext-panics)
+		(delete-overlay ov)))
+	;; Find unwrap/expect method calls
+	(dolist (cap (treesit-query-capture body
+				   '((call_expression
+					  function: (field_expression
+						field: (field_identifier) @method)))))
+	  (when (eq (car cap) 'method)
+		(let ((name (treesit-node-text (cdr cap))))
+		  (cond
+		   ((string= name "unwrap")
+			(push (cdr cap) unwraps))
+		   ((string= name "expect")
+			(let* ((call-expr (treesit-node-parent
+							   (treesit-node-parent (cdr cap))))
+				   (args (treesit-node-child-by-field-name call-expr "arguments"))
+				   (str-cap (and args (car (treesit-query-capture args
+													'((string_literal) @s))))))
+			  (when str-cap
+				(push (rust-ts-ext--unquote (treesit-node-text (cdr str-cap)))
+					  panic-messages))))))))
+	;; Find panic! macro invocations
+	(dolist (cap (treesit-query-capture body
+				   '((macro_invocation
+					  macro: (identifier) @name))))
+	  (when (and (eq (car cap) 'name)
+				 (string= (treesit-node-text (cdr cap)) "panic"))
+		(let* ((invocation (treesit-node-parent (cdr cap)))
+			   (str-cap (car (treesit-query-capture invocation
+							   '((string_literal) @s)))))
+		  (when str-cap
+			(push (rust-ts-ext--unquote (treesit-node-text (cdr str-cap)))
+				  panic-messages)))))
+	;; Highlight unwrap calls
+	(dolist (node (nreverse unwraps))
+	  (let ((ov (make-overlay (treesit-node-start node) (treesit-node-end node))))
+		(overlay-put ov 'face 'warning)
+		(overlay-put ov 'rust-ts-ext-panics t)))
+	;; Build ordered panic messages
+	(setq panic-messages (nreverse panic-messages))
+	;; Insert or update doc comment
+	(let ((doc-comments (rust-ts-ext--fn-doc-comments fn-item)))
+	  (when (and panic-messages doc-comments)
+		(let* ((indent (save-excursion
+						 (goto-char (treesit-node-start fn-item))
+						 (current-indentation)))
+			   (prefix (concat (make-string indent ?\s) "///"))
+			   (panics-heading nil))
+		  ;; Check for existing # Panics section
+		  (dolist (n doc-comments)
+			(when (string-match-p "# Panics" (treesit-node-text n))
+			  (setq panics-heading n)))
+		  (if panics-heading
+			  (when (y-or-n-p "Do you want to update the panic docs? ")
+				(let ((section-last panics-heading)
+					  (past-panics nil)
+					  (has-following nil))
+				  (dolist (node doc-comments)
+					(cond
+					 (has-following nil)
+					 (past-panics
+					  (if (string-match-p "^/// *#" (treesit-node-text node))
+						  (setq has-following t)
+						(setq section-last node)))
+					 ((eq node panics-heading)
+					  (setq past-panics t))))
+				  (save-excursion
+					(let ((del-start (save-excursion
+									   (goto-char (treesit-node-start panics-heading))
+									   (line-beginning-position)))
+						  (del-end (save-excursion
+									 (goto-char (treesit-node-end section-last))
+									 (line-beginning-position 2))))
+					  (delete-region del-start del-end)
+					  (goto-char del-start)
+					  (insert prefix " # Panics\n"
+							  prefix "\n")
+					  (dolist (msg panic-messages)
+						(insert prefix " - " msg "\n"))
+					  (when has-following
+						(insert prefix "\n"))))))
+			;; Insert new # Panics section
+			(save-excursion
+			  (goto-char (treesit-node-end (car (last doc-comments))))
+			  (insert "\n" prefix
+					  "\n" prefix " # Panics"
+					  "\n" prefix)
+			  (dolist (msg panic-messages)
+				(insert "\n" prefix " - " msg)))))))))
 
 (provide 'rust-ts-ext)
 ;;; rust-ts-ext.el ends here
