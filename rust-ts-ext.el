@@ -86,26 +86,44 @@ the final expression position, `insert' `Some`, the opening and closing parens, 
 	(if fn-item
 		(progn
 		  (back-to-indentation)			;TODO: Figure out the body location
-		  (if (or (looking-at "Ok") (= (point) (treesit-node-start fn-item)))
+		  (if (or (looking-at "Ok") (looking-at "Some") (= (point) (treesit-node-start fn-item)))
 			  (let* ((ret (treesit-node-child-by-field-name fn-item "return_type"))
 					 (beg (treesit-node-start ret))
 					 (end (treesit-node-end ret)))
 				(goto-char beg)
-				(if (looking-at "Result")
-					(goto-char (match-end 0))
+				(cond
+				 ((looking-at "Result")
+				  (goto-char (match-end 0)))
+				 ((looking-at "Option")
+				  (goto-char (match-end 0)))
+				 (t
 				  (goto-char end)
 				  (insert ", ")
 				  (insert rust-ts-ext-default-error-type)
 				  (insert ">")
 				  (goto-char beg)
-				  (insert "Result<")))
-			(save-excursion
-			  (insert "Ok(")
-			  (when (eolp) (insert "()"))
-			  (end-of-visual-line)
-			  (backward-up-list)
-			  (forward-sexp)
-			  (insert ")"))))
+				  (insert "Result<"))))
+			(let* ((ret (treesit-node-child-by-field-name fn-item "return_type"))
+				   (ret-text (and ret (treesit-node-text ret)))
+				   (wrapper (cond
+							 ((and ret-text (string-match-p "^Option" ret-text)) "Some")
+							 (t "Ok"))))
+			  (save-excursion
+				(insert wrapper "(")
+				(when (eolp) (insert "()"))
+				(end-of-visual-line)
+				(backward-up-list)
+				(forward-sexp)
+				(insert ")"))
+			  (when (and ret (string= wrapper "Ok")
+						 (not (string-match-p "^Result" ret-text)))
+				(save-excursion
+				  (let ((beg (treesit-node-start ret))
+						(end (treesit-node-end ret)))
+					(goto-char end)
+					(insert ", " rust-ts-ext-default-error-type ">")
+					(goto-char beg)
+					(insert "Result<")))))))
 	  (funcall-interactively 'rust-ts-ext-insert-fn "fallible_function" "" (format "Result<(), %s>" rust-ts-ext-default-error-type)))))
 
 
