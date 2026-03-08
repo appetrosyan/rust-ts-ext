@@ -66,6 +66,8 @@
   "Box<dyn std::error::Error>"
   "The type that is used as a placeholder for `rust-ts-ext-ok'.  If in doubt, just use `Box<dyn std::error::Error>`.")
 
+;; TODO: Should also change function signature without having to call it again
+;; TODO: When around a `let` binding, should not include the `let` part, just do the expression side.
 (defun rust-ts-ext-insert-ok-dwim ()
   "Add OK at the end of the function call.
 
@@ -431,9 +433,9 @@ If a `# Panics' section already exists, prompts the user before updating."
 				(insert "\n" prefix " - " msg)))))))))
 
 (defvar rust-ts-ext-popular-crates
-  '("serde" "serde_json" "tokio" "anyhow" "clap" "rand" "log" "env_logger"
-    "reqwest" "hyper" "axum" "actix-web" "tracing" "tracing-subscriber"
-    "thiserror" "futures" "async-trait" "chrono" "regex" "once_cell"
+  '("ariadne" "nanoserde" "serde" "serde_json" "tokio" "anyhow" "clap" "rand"
+	"log" "env_logger"  "reqwest" "hyper" "axum" "actix-web" "tracing" "tracing-subscriber"
+	"goof" "futures" "async-trait" "chrono" "regex" "once_cell"
     "lazy_static" "itertools" "rayon" "crossbeam" "parking_lot" "bytes"
     "uuid" "url" "base64" "sha2" "toml" "csv" "walkdir" "tempfile"
     "syn" "quote" "proc-macro2" "num" "bitflags" "derive_more"
@@ -447,7 +449,7 @@ If a `# Panics' section already exists, prompts the user before updating."
     "ahash" "rustls" "native-tls" "ring" "ed25519-dalek" "x25519-dalek"
     "image" "wgpu" "winit" "egui" "iced" "bevy" "ratatui"
     "criterion" "proptest" "insta" "assert_cmd" "predicates"
-    "trybuild" "mockall" "wiremock")
+    "trybuild" "mockall" "wiremock" "bytecount")
   "A list of popular crate names used to seed `rust-ts-ext-cargo-add'.")
 
 (defvar rust-ts-ext--fetched-crates nil
