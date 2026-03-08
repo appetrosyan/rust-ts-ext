@@ -315,29 +315,24 @@ Skips over any attribute items between the doc comments and the function."
 	  (setq prev (treesit-node-prev-sibling prev)))
 	result))
 
-(defun rust-ts-ext-doc-panics ()
-  "Document panics for the function at point.
+(defun rust-ts-ext-highlight-panics-in-fn-item (fn-item)
+  "Highlight panic keywords in FN-ITEM and return panic messages.
 
-Highlights every `unwrap' call in the function body with a warning face.
-Collects panic messages from `expect' and `panic!' statements and adds
-a `# Panics' section to the function's doc comment.
-
-If a `# Panics' section already exists, prompts the user before updating."
-  (interactive)
-  (let* ((fn-item (treesit-node-inside-p (treesit-node-at (point)) "function_item"))
-		 (body (and fn-item (treesit-node-child-by-field-name fn-item "body")))
+Clears previous panic overlays in the function body, then highlights
+every `unwrap' call with a warning face.  Collects and returns panic
+messages from `expect' and `panic!' statements as a list of strings."
+  (let* ((body (treesit-node-child-by-field-name fn-item "body"))
 		 (unwraps '())
 		 (panic-messages '()))
-	(unless fn-item (user-error "Not inside a function"))
 	;; Clear previous panic highlights in this function
 	(dolist (ov (overlays-in (treesit-node-start body) (treesit-node-end body)))
 	  (when (overlay-get ov 'rust-ts-ext-panics)
 		(delete-overlay ov)))
 	;; Find unwrap/expect method calls
 	(dolist (cap (treesit-query-capture body
-				   '((call_expression
-					  function: (field_expression
-						field: (field_identifier) @method)))))
+										'((call_expression
+										   function: (field_expression
+													  field: (field_identifier) @method)))))
 	  (when (eq (car cap) 'method)
 		(let ((name (treesit-node-text (cdr cap))))
 		  (cond
@@ -348,19 +343,19 @@ If a `# Panics' section already exists, prompts the user before updating."
 							   (treesit-node-parent (cdr cap))))
 				   (args (treesit-node-child-by-field-name call-expr "arguments"))
 				   (str-cap (and args (car (treesit-query-capture args
-													'((string_literal) @s))))))
+																  '((string_literal) @s))))))
 			  (when str-cap
 				(push (rust-ts-ext--unquote (treesit-node-text (cdr str-cap)))
 					  panic-messages))))))))
 	;; Find panic! macro invocations
 	(dolist (cap (treesit-query-capture body
-				   '((macro_invocation
-					  macro: (identifier) @name))))
+										'((macro_invocation
+										   macro: (identifier) @name))))
 	  (when (and (eq (car cap) 'name)
 				 (string= (treesit-node-text (cdr cap)) "panic"))
 		(let* ((invocation (treesit-node-parent (cdr cap)))
 			   (str-cap (car (treesit-query-capture invocation
-							   '((string_literal) @s)))))
+													'((string_literal) @s)))))
 		  (when str-cap
 			(push (rust-ts-ext--unquote (treesit-node-text (cdr str-cap)))
 				  panic-messages)))))
@@ -369,8 +364,22 @@ If a `# Panics' section already exists, prompts the user before updating."
 	  (let ((ov (make-overlay (treesit-node-start node) (treesit-node-end node))))
 		(overlay-put ov 'face 'warning)
 		(overlay-put ov 'rust-ts-ext-panics t)))
-	;; Build ordered panic messages
-	(setq panic-messages (nreverse panic-messages))
+	;; Return ordered panic messages
+	(nreverse panic-messages)))
+
+(defun rust-ts-ext-doc-panics ()
+  "Document panics for the function at point.
+
+Highlights every `unwrap' call in the function body with a warning face.
+Collects panic messages from `expect' and `panic!' statements and adds
+a `# Panics' section to the function's doc comment.
+
+If a `# Panics' section already exists, prompts the user before updating."
+  (interactive)
+  (let* ((fn-item (treesit-node-inside-p (treesit-node-at (point)) "function_item"))
+		 (panic-messages nil))
+	(unless fn-item (user-error "Not inside a function"))
+	(setq panic-messages (rust-ts-ext-highlight-panics-in-fn-item fn-item))
 	;; Insert or update doc comment
 	(let ((doc-comments (rust-ts-ext--fn-doc-comments fn-item)))
 	  (when (and panic-messages doc-comments)
