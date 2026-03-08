@@ -430,5 +430,90 @@ If a `# Panics' section already exists, prompts the user before updating."
 			  (dolist (msg panic-messages)
 				(insert "\n" prefix " - " msg)))))))))
 
+(defvar rust-ts-ext-popular-crates
+  '("serde" "serde_json" "tokio" "anyhow" "clap" "rand" "log" "env_logger"
+    "reqwest" "hyper" "axum" "actix-web" "tracing" "tracing-subscriber"
+    "thiserror" "futures" "async-trait" "chrono" "regex" "once_cell"
+    "lazy_static" "itertools" "rayon" "crossbeam" "parking_lot" "bytes"
+    "uuid" "url" "base64" "sha2" "toml" "csv" "walkdir" "tempfile"
+    "syn" "quote" "proc-macro2" "num" "bitflags" "derive_more"
+    "strum" "strum_macros" "colored" "indicatif" "dialoguer"
+    "rusqlite" "sqlx" "diesel" "sea-orm" "tower" "tower-http"
+    "tonic" "prost" "warp" "rocket" "tide" "notify" "mio"
+    "nix" "libc" "cc" "bindgen" "semver" "config" "figment"
+    "serde_yaml" "ron" "postcard" "rmp-serde" "ciborium"
+    "eyre" "color-eyre" "miette" "winnow" "nom" "pest" "chumsky"
+    "smallvec" "tinyvec" "arrayvec" "indexmap" "dashmap" "hashbrown"
+    "ahash" "rustls" "native-tls" "ring" "ed25519-dalek" "x25519-dalek"
+    "image" "wgpu" "winit" "egui" "iced" "bevy" "ratatui"
+    "criterion" "proptest" "insta" "assert_cmd" "predicates"
+    "trybuild" "mockall" "wiremock")
+  "A list of popular crate names used to seed `rust-ts-ext-cargo-add'.")
+
+(defvar rust-ts-ext--fetched-crates nil
+  "Crate names fetched from crates.io, populated asynchronously.")
+
+(defvar rust-ts-ext--crates-fetched-p nil
+  "Non-nil when crate names have been fetched from crates.io.")
+
+(defun rust-ts-ext--fetch-crates ()
+  "Fetch popular crate names from crates.io asynchronously."
+  (unless rust-ts-ext--crates-fetched-p
+    (url-retrieve
+     "https://crates.io/api/v1/crates?page=1&per_page=100&sort=downloads"
+     (lambda (_status)
+       (goto-char url-http-end-of-headers)
+       (condition-case nil
+           (let* ((json (json-parse-buffer :object-type 'alist))
+                  (crates (alist-get 'crates json)))
+             (setq rust-ts-ext--fetched-crates
+                   (mapcar (lambda (c) (alist-get 'name c))
+                           (append crates nil)))
+             (setq rust-ts-ext--crates-fetched-p t))
+         (error (setq rust-ts-ext--crates-fetched-p t))))
+     nil t)))
+
+(defun rust-ts-ext-cargo-add (arg)
+  "Add a crate dependency via `cargo add' with completion.
+
+Offers completion from a built-in list of popular crates,
+supplemented asynchronously with the most-downloaded crates from
+crates.io.  Free-form input is accepted so any crate name can be
+entered.
+
+With prefix ARG (\\[universal-argument]), skip fetching crates from crates.io."
+  (interactive "P")
+  (unless arg (rust-ts-ext--fetch-crates))
+  (let* ((candidates (delete-dups
+                      (append (copy-sequence rust-ts-ext-popular-crates)
+                              rust-ts-ext--fetched-crates)))
+         (crate (completing-read "Crate: " candidates nil nil)))
+    (when (string-empty-p crate)
+      (user-error "No crate specified"))
+    (compile (concat "cargo add " (shell-quote-argument crate)))))
+
+(defun rust-ts-ext-open-cargo-toml (arg)
+  "Open the nearest `Cargo.toml' by searching upward from the current file.
+
+With prefix ARG (\\[universal-argument]), open the workspace-root `Cargo.toml' instead."
+  (interactive "P")
+  (let ((dir (locate-dominating-file default-directory "Cargo.toml")))
+    (unless dir (user-error "No Cargo.toml found"))
+    (when arg
+      (let ((root nil))
+        (while dir
+          (setq root dir)
+          (setq dir (locate-dominating-file
+                     (file-name-directory (directory-file-name dir))
+                     "Cargo.toml")))
+        (setq dir root)))
+    (find-file (expand-file-name "Cargo.toml" dir))))
+
+(defun rust-ts-ext-open-workspace-cargo-toml ()
+  "Open the workspace-root `Cargo.toml'.
+Delegates to `rust-ts-ext-open-cargo-toml' with a prefix argument."
+  (interactive)
+  (rust-ts-ext-open-cargo-toml '(4)))
+
 (provide 'rust-ts-ext)
 ;;; rust-ts-ext.el ends here
