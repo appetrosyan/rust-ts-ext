@@ -15,6 +15,7 @@
 
 ;;; Code:
 (require 'rust-ts-mode)
+(require 'transient)
 
 (defsubst rust-ts-ext-at-indentation-p ()
   "Return t if at indentation."
@@ -516,6 +517,43 @@ With prefix ARG (\\[universal-argument]), open the workspace-root `Cargo.toml' i
 Delegates to `rust-ts-ext-open-cargo-toml' with a prefix argument."
   (interactive)
   (rust-ts-ext-open-cargo-toml '(4)))
+
+(defun rust-ts-ext-cargo-check (&optional args)
+  "Run cargo check.
+CMD is the specific subcommand.
+If ARGS contains `--workspace', run workspace-wide check"
+  (interactive (list (transient-args transient-current-command)))
+  (let ((command (concat "cargo check")))
+	(setq
+	 command
+	 (concat command
+			 (mapconcat (lambda (arg) (when (transient-arg-value arg args) (concat " " arg))) '("--workspace" "--no-default-features" "--release" "--quiet"))))
+	(compile command)))
+
+(defun rust-ts-ext-cargo-clippy (&optional args)
+  "Run cargo check.
+CMD is the specific subcommand.
+If ARGS contains `--workspace', run workspace-wide check"
+  (interactive (list (transient-args transient-current-command)))
+  (let ((command (concat "cargo clippy")))
+	(setq
+	 command
+	 (concat command
+			 (mapconcat (lambda (arg) (when (transient-arg-value arg args) (concat " " arg))) '("--workspace" "--no-default-features" "--release" "--quiet"))))
+	(compile command)))
+
+
+(transient-define-prefix rust-ts-ext-compile-transient ()
+  "A transient prefix for project commands."
+  ["Customisation"
+   ("-w" "Workspace" "--workspace")
+   ("-n" "No default features" "--no-default-features")
+   ("-r" "Release" "--release")
+   ("-q" "Quiet" "--quiet")]
+  
+  ["Project Commands"
+   ("c" "Check" rust-ts-ext-cargo-check)
+   ("l" "Clippy (linter)" rust-ts-ext-cargo-clippy)])
 
 (provide 'rust-ts-ext)
 ;;; rust-ts-ext.el ends here
