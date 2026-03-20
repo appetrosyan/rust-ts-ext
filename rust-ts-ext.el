@@ -154,6 +154,46 @@ Rename enumeration if looking at an enumeration."
 		  (progn (forward-word) (insert "(crate)"))
 		(insert "pub ")))))
 
+(defun rust-ts-ext-try-from ()
+  "Replace `as' casts with `T::try_from(v)?' in the current statement.
+
+Scopes the replacement to the enclosing let-declaration or
+expression statement so that only one statement is affected at a
+time.  For example, transforms:
+  let r = a as usize + b as i32
+into:
+  let r = usize::try_from(a)? + i32::try_from(b)?"
+  (interactive)
+  (let* ((node (treesit-node-at (point)))
+		 (scope (or (treesit-node-inside-p node "let_declaration")
+					(treesit-node-inside-p node "expression_statement")
+					;; Fallback: walk up to the nearest block-child
+					(let ((n node))
+					  (while (let ((p (treesit-node-parent n)))
+							   (and p (not (member (treesit-node-type p)
+												   '("block" "source_file")))))
+						(setq n (treesit-node-parent n)))
+					  n)))
+		 (casts '()))
+	(dolist (cap (treesit-query-capture scope
+										'((type_cast_expression) @cast)))
+	  (when (eq (car cap) 'cast)
+		(push (cdr cap) casts)))
+	(unless casts (user-error "No `as' casts found in statement"))
+	;; Replace from end to start so positions remain valid
+	(setq casts (sort casts (lambda (a b)
+							  (> (treesit-node-start a) (treesit-node-start b)))))
+	(dolist (cast casts)
+	  (let* ((value-node (treesit-node-child-by-field-name cast "value"))
+			 (type-node (treesit-node-child-by-field-name cast "type"))
+			 (value-text (treesit-node-text value-node))
+			 (type-text (treesit-node-text type-node))
+			 (beg (treesit-node-start cast))
+			 (end (treesit-node-end cast)))
+		(delete-region beg end)
+		(goto-char beg)
+		(insert (format "%s::try_from(%s)?" type-text value-text))))))
+
 (defun rust-ts-ext-insert-anonymous-lifetime()
   "Add an anonymous lifetime to the current node."
   (interactive)
@@ -518,12 +558,14 @@ Delegates to `rust-ts-ext-open-cargo-toml' with a prefix argument."
   (interactive)
   (rust-ts-ext-open-cargo-toml '(4)))
 
+;; TODO: Better way to extract suffixes.
+
 (defun rust-ts-ext-cargo-check (&optional args)
   "Run cargo check.
 CMD is the specific subcommand.
 If ARGS contains `--workspace', run workspace-wide check"
   (interactive (list (transient-args transient-current-command)))
-  (let ((command (concat "cargo check")))
+  (let ((command (concat "cargo" " check")))
 	(setq
 	 command
 	 (concat command
@@ -535,7 +577,19 @@ If ARGS contains `--workspace', run workspace-wide check"
 CMD is the specific subcommand.
 If ARGS contains `--workspace', run workspace-wide check"
   (interactive (list (transient-args transient-current-command)))
-  (let ((command (concat "cargo clippy")))
+  (let ((command (concat "cargo" " clippy")))
+	(setq
+	 command
+	 (concat command
+			 (mapconcat (lambda (arg) (when (transient-arg-value arg args) (concat " " arg))) '("--workspace" "--no-default-features" "--release" "--quiet"))))
+	(compile command)))
+
+(defun rust-ts-ext-cargo-test(&optional args)
+  "Run cargo test.
+ARGS are obtained from transient and signify the following:
+`--workspace' for a workspace-wide check"
+  (interactive (list (transient-args transient-current-command)))
+  (let ((command (concat "cargo" " test")))
 	(setq
 	 command
 	 (concat command
@@ -550,10 +604,10 @@ If ARGS contains `--workspace', run workspace-wide check"
    ("-n" "No default features" "--no-default-features")
    ("-r" "Release" "--release")
    ("-q" "Quiet" "--quiet")]
-  
   ["Project Commands"
    ("c" "Check" rust-ts-ext-cargo-check)
-   ("l" "Clippy (linter)" rust-ts-ext-cargo-clippy)])
+   ("l" "Clippy (linter)" rust-ts-ext-cargo-clippy)
+   ("t" "Test" rust-ts-ext-cargo-test)])
 
 (provide 'rust-ts-ext)
 ;;; rust-ts-ext.el ends here

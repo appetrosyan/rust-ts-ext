@@ -38,8 +38,16 @@ You can already do that; a combinration of ~yasnippet~ and ~eglot~ can largely c
 
 * Implemented functions
 
+** Unique Functions
+- [X] ~rust-ts-ext-doc-panics~: Inside a function item, highlight all of the unwrap calls, and add the text of `expect` conditions to the ~# Panics~ section of the function's documentation.
+- [X] =rust-ts-ext-insert-default=: Inside a struct item, looking at its identifier, insert an ~impl Default~ based on the following heuristics.  If a ~Self::new~ is defined and takes no arguments, just replace with a call to that.  If it takes any arguments, replace those arguments with ~Default::default()~.  If no ~Self::new~ is defined, just replace every member with ~Default::default~ (which is what ~derive(Default)~ does usually.
+- [X] =rust-ts-ext-insert-anonymous-lifetime=: Saves you a bunch of typing.
+
+
 ** Insert family
 The functions largely fall into two categories, there are context-sensitive insert functions, which try to guess the best approximation of what you want to do in this case, and often only prompt for a name /only/ if they can't guess.  These are the functions
+- [X] ~rust-ts-ext-insert-ok-dwim~
+- [X] =rust-ts-ext-insert-impl-block-dwim=
 - [ ] ~rust/insert-struct~
 - [ ] ~rust/insert-enum~
 - [ ] ~rust/insert-mod~
@@ -47,7 +55,6 @@ The functions largely fall into two categories, there are context-sensitive inse
 - [ ] ~rust/insert-into~
 - [ ] ~rust/insert-clone~
 - [ ] ~rust/insert-result~
-- [ ] ~rust/insert-ok~
 - [ ] ~rust/insert-some~
 - [ ] ~rust/insert-map-err~
 - [ ] ~rust/insert-map~
@@ -79,6 +86,7 @@ One good example is ~rust/convert-tuple~ which is highly contextual.
 
 There is
 - [ ] ~rust/convert-tuple~
+- [ ] =rust-ts-ext-try-from=: Replace =as= casts with =try_from= implementations for numerical operations.
 - [ ] ~rust/convert-struct~
 - [ ] ~rust/convert-newtype~
 - [ ] ~rust/convert-type-alias~
@@ -116,14 +124,14 @@ I'm adding a transient for iterators.
 
 This is a collection of functions that would normally be invoked by ~rustic~.  That implementation does not work as well.  So I'm providing my own implementations.
 
-- [ ]  ~rust/cargo-check~
-- [ ] ~rust/cargo-add~
+- [X] =rust-ts-ext-cargo-add=
+- [X] =rust-ts-ext-cargo-clippy=
+- [X] =rust-ts-ext-cargo-clippy=
 - [ ] ~rust/cargo-delete-lock~
-- [ ] ~rust/cargo-open-toml~
+- [X] ~rust-ts-ext-open-cargo-toml~
 - [ ] ~rust/cargo-bump-minor~
 - [ ] ~rust/cargo-bump-patch~
 - [ ] ~rust/cargo-bump-major~
-- [ ] ~rust/cargo-clippy~
 - [ ] ~rust/cargo-test~
 - [ ] ~rust/cargo-test-all~
 - [ ] ~rust/cargo-publish-transient~
