@@ -129,7 +129,6 @@ the final expression position, `insert' `Some`, the opening and closing parens, 
 					(insert "Result<")))))))
 	  (funcall-interactively 'rust-ts-ext-insert-fn "fallible_function" "" (format "Result<(), %s>" rust-ts-ext-default-error-type)))))
 
-
 (defun rust-ts-ext-rename()
   "Rename the structure item if looking at a structure item.
 
