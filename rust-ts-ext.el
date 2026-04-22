@@ -614,14 +614,6 @@ ARGS are obtained from transient and signify the following:
 	(setq output (-filter (lambda (s) (not (string-equal s ""))) output))
 	(mapcar 'strip-whitespace output)))
 
-(defun rust-ts-ext-read-binary (prompt &optional _initial_input _history)
-  "Read binary name from current project."
-  (interactive)
-  (let ((bins (rust-ts-ext--get-binaries)))
-	(if bins
-		(completing-read prompt bins nil nil _initial_input)
-	  "")))
-
 (defun rust-ts-ext-run(&optional args)
   "Run the specified binary."
   (interactive)
@@ -634,10 +626,10 @@ ARGS are obtained from transient and signify the following:
 
 (transient-define-infix rust-ts-ext-binary ()
   :key "-b"
-  :description "Binary to run"
+  :description "Binary"
   :class 'transient-option
   :argument "--bin "
-  :reader #'rust-ts-ext-read-binary)
+  :choices #'rust-ts-ext--get-binaries)
 
 (transient-define-prefix rust-ts-ext-compile-transient ()
   "A transient prefix for project commands."
