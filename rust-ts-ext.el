@@ -562,13 +562,14 @@ Delegates to `rust-ts-ext-open-cargo-toml' with a prefix argument."
 (defun rust-ts-ext-cargo-check (&optional args)
   "Run cargo check.
 CMD is the specific subcommand.
-If ARGS contains `--workspace', run workspace-wide check"
+If ARGS contains `--workspace', run workspace-wide check.
+If ARGS contains `--bin', run for specific binary."
   (interactive (list (transient-args transient-current-command)))
   (let ((command (concat "cargo" " check")))
 	(setq
 	 command
 	 (concat command
-			 (mapconcat (lambda (arg) (when (transient-arg-value arg args) (concat " " arg))) '("--workspace" "--no-default-features" "--release" "--quiet"))))
+			 (mapconcat (lambda (arg) (when (transient-arg-value arg args) (concat " " arg))) '("--bin" "--workspace" "--no-default-features" "--release" "--quiet"))))
 	(compile command)))
 
 (defun rust-ts-ext-cargo-clippy (&optional args)
@@ -595,10 +596,53 @@ ARGS are obtained from transient and signify the following:
 			 (mapconcat (lambda (arg) (when (transient-arg-value arg args) (concat " " arg))) '("--workspace" "--no-default-features" "--release" "--quiet"))))
 	(compile command)))
 
+(defun strip-whitespace (string)
+  "Return STRING stripped of all whitespace."
+  (while (string-match "[\r\n\t ]+" string)
+    (setq string (replace-match "" t t string)))
+  string)
+
+(defun rust-ts-ext--get-binaries ()
+  "Return list of binary targets in current cargo project."
+  ;; Run `cargo run --bin` without any follow up. This triggers the output listing available binaries. Capture that.
+  ;; Parse the Available binaries
+  ;; First line is `error: "--bin" takes one argument`. If don't have it, abort
+  ;; Second line is `Available binaries`
+  ;; Third line and onwards is indented binary names
+  (let*
+	  ((output (cddr (s-lines (shell-command-to-string "cargo build --bin 2>&1")))))
+	(setq output (-filter (lambda (s) (not (string-equal s ""))) output))
+	(mapcar 'strip-whitespace output)))
+
+(defun rust-ts-ext-read-binary (prompt &optional _initial_input _history)
+  "Read binary name from current project."
+  (interactive)
+  (let ((bins (rust-ts-ext--get-binaries)))
+	(if bins
+		(completing-read prompt bins nil nil _initial_input)
+	  "")))
+
+(defun rust-ts-ext-run(&optional args)
+  "Run the specified binary."
+  (interactive)
+  (interactive (list (transient-args transient-current-command)))
+  (let ((command (concat "cargo" " run")))
+	(setq
+	 command
+	 (concat command (mapconcat (lambda (arg) (when (transient-arg-value arg args) (concat " " arg))) '("--bin" "--workspace" "--no-default-features" "--release" "--quiet"))))
+	(compile command)))
+
+(transient-define-infix rust-ts-ext-binary ()
+  :key "-b"
+  :description "Binary to run"
+  :class 'transient-option
+  :argument "--bin"
+  :reader #'rust-ts-ext-read-binary)
 
 (transient-define-prefix rust-ts-ext-compile-transient ()
   "A transient prefix for project commands."
   ["Customisation"
+   (rust-ts-ext-binary)
    ("-w" "Workspace" "--workspace")
    ("-n" "No default features" "--no-default-features")
    ("-r" "Release" "--release")
@@ -606,7 +650,9 @@ ARGS are obtained from transient and signify the following:
   ["Project Commands"
    ("c" "Check" rust-ts-ext-cargo-check)
    ("l" "Clippy (linter)" rust-ts-ext-cargo-clippy)
-   ("t" "Test" rust-ts-ext-cargo-test)])
+   ("t" "Test" rust-ts-ext-cargo-test)
+   ("r" "Run" rust-ts-ext-run)])
+
 
 (provide 'rust-ts-ext)
 ;;; rust-ts-ext.el ends here
