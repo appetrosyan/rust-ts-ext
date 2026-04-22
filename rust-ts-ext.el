@@ -636,7 +636,7 @@ ARGS are obtained from transient and signify the following:
   :key "-b"
   :description "Binary to run"
   :class 'transient-option
-  :argument "--bin"
+  :argument "--bin "
   :reader #'rust-ts-ext-read-binary)
 
 (transient-define-prefix rust-ts-ext-compile-transient ()
