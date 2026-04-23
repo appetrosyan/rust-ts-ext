@@ -19,8 +19,6 @@
 
 (defsubst rust-ts-ext-at-indentation-p ()
   "Return t if at indentation."
-  (interactive "P")
-  ;; TODO: consider making these more efficient
   (string-match-p "^\\s-+$" (buffer-substring-no-properties (line-beginning-position) (point))))
 
 (defsubst treesit-node-inside-p (node type)
