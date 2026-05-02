@@ -65,11 +65,9 @@ Third optional argument is the comment.
 		(insert (format "/// %s" (caddr field)))
 		(indent-for-tab-command)
 		(insert "\n"))
-	  (insert (car field))
-	  (insert ": ")
-	  (insert (cadr field))
+	  (insert (format "%s: %s," (car field) (cadr field)))
 	  (indent-for-tab-command)
-	  (insert ",\n"))
+	  (insert "\n"))
 	(insert "}\n"))
   (indent-for-tab-command))
 
@@ -85,8 +83,7 @@ can only comprise a list of types."
   (insert "(")
   (save-excursion
 	(dolist (field fields)
-	  (insert field)
-	  )
+	  (insert field))
 	(insert ");")))
 
 ;; TODO: This looks like a use-case for `cond*'.
