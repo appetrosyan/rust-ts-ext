@@ -127,8 +127,10 @@ This is a collection of functions that would normally be invoked by ~rustic~.  T
 - [X] =rust-ts-ext-cargo-add=
 - [X] =rust-ts-ext-cargo-clippy=
 - [X] =rust-ts-ext-cargo-clippy=
+- [X] ~rust-ts-ext-cargo-check~
 - [ ] ~rust/cargo-delete-lock~
 - [X] ~rust-ts-ext-open-cargo-toml~
+- [X] ~rust-ts-ext-open-workspace-cargo-toml~
 - [ ] ~rust/cargo-bump-minor~
 - [ ] ~rust/cargo-bump-patch~
 - [ ] ~rust/cargo-bump-major~

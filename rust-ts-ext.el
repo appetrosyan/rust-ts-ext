@@ -22,10 +22,72 @@
   (string-match-p "^\\s-+$" (buffer-substring-no-properties (line-beginning-position) (point))))
 
 (defsubst treesit-node-inside-p (node type)
-  "Recurse up the tree of nodes to quickly check if a NODE is of TYPE and return the node."
+  "Recursively walk up the tree of nodes to check if a NODE is of TYPE and return the node."
   (cond ((null node) nil)
 		((string= type (treesit-node-type node)) node)
 		(node (treesit-node-inside-p (treesit-node-parent node) type))))
+
+(defun rust-ts-ext-insert-fn (&optional fn-name arguments return)
+  "Add fn item with the name FN-NAME(ARGUMENTS) -> RETURN."
+  (interactive)
+  (when (or (bolp) (rust-ts-ext-at-indentation-p))
+	(let ((function-name (if fn-name fn-name "function"))
+		  (return-clause (if return (concat " -> " return) "")))
+	  (progn
+		(insert "fn ")
+		(indent-for-tab-command)
+		(insert (format "%s(%s)%s {\n" function-name (or arguments "") return-clause))
+		(save-excursion
+		  (indent-for-tab-command)
+		  (insert "todo!()\n")
+		  (insert "}\n"))
+		(indent-for-tab-command)))))
+
+(defcustom rust-ts-ext-default-struct-placeholder-name "Placeholder" "The default structure placeholder name to be used when calling into `rust-ts-ext-insert-braced-strcut' and/or `rust-ts-ext-insert-tuple-struct'")
+
+(defun rust-ts-ext-insert-braced-struct(&optional struct-name fields)
+  "Add struct item with STRUCT-NAME and given FIELDS.
+
+The fields are specified as a list of lists with either 2 or 3 entries.
+
+First is the name, second the type. No punctuation needed, as double-quoted-strings.
+
+Third optional argument is the comment.
+"
+  (interactive)
+  (insert "struct ")
+  (indent-for-tab-command)
+  (insert (or struct-name rust-ts-ext-default-struct-placeholder-name))
+  (insert " {\n")
+  (save-excursion
+	(dolist (field fields)
+	  (when (caddr field)
+		(insert (format "/// %s" (caddr field)))
+		(indent-for-tab-command)
+		(insert "\n"))
+	  (insert (car field))
+	  (insert ": ")
+	  (insert (cadr field))
+	  (indent-for-tab-command)
+	  (insert ",\n"))
+	(insert "}\n"))
+  (indent-for-tab-command))
+
+(defun rust-ts-ext-insert-tuple-struct(&optional struct-name fields)
+  "Add struct item with STRUCT-NAME and given fields.
+
+By contrast with `rust-ts-ext-insert-braced-struct' the fields
+can only comprise a list of types."
+  (interactive)
+  (insert "struct ")
+  (indent-for-tab-command)
+  (insert (or struct-name rust-ts-ext-default-struct-placeholder-name))
+  (insert "(")
+  (save-excursion
+	(dolist (field fields)
+	  (insert field)
+	  )
+	(insert ");")))
 
 ;; TODO: This looks like a use-case for `cond*'.
 ;; TODO: This does not handle import statement structures.
@@ -502,13 +564,13 @@ If a `# Panics' section already exists, prompts the user before updating."
     (url-retrieve
      "https://crates.io/api/v1/crates?page=1&per_page=100&sort=downloads"
      (lambda (_status)
-       (goto-char url-http-end-of-headers)
-       (condition-case nil
-           (let* ((json (json-parse-buffer :object-type 'alist))
-                  (crates (alist-get 'crates json)))
+	   (goto-char url-http-end-of-headers)
+	   (condition-case nil
+		   (let* ((json (json-parse-buffer :object-type 'alist))
+				  (crates (alist-get 'crates json)))
              (setq rust-ts-ext--fetched-crates
-                   (mapcar (lambda (c) (alist-get 'name c))
-                           (append crates nil)))
+				   (mapcar (lambda (c) (alist-get 'name c))
+						   (append crates nil)))
              (setq rust-ts-ext--crates-fetched-p t))
          (error (setq rust-ts-ext--crates-fetched-p t))))
      nil t)))
@@ -525,11 +587,11 @@ With prefix ARG (\\[universal-argument]), skip fetching crates from crates.io."
   (interactive "P")
   (unless arg (rust-ts-ext--fetch-crates))
   (let* ((candidates (delete-dups
-                      (append (copy-sequence rust-ts-ext-popular-crates)
-                              rust-ts-ext--fetched-crates)))
+					  (append (copy-sequence rust-ts-ext-popular-crates)
+							  rust-ts-ext--fetched-crates)))
          (crate (completing-read "Crate: " candidates nil nil)))
     (when (string-empty-p crate)
-      (user-error "No crate specified"))
+	  (user-error "No crate specified"))
     (compile (concat "cargo add " (shell-quote-argument crate)))))
 
 (defun rust-ts-ext-open-cargo-toml (arg)
@@ -540,10 +602,10 @@ With prefix ARG (\\[universal-argument]), open the workspace-root `Cargo.toml' i
   (let ((dir (locate-dominating-file default-directory "Cargo.toml")))
     (unless dir (user-error "No Cargo.toml found"))
     (when arg
-      (let ((root nil))
+	  (let ((root nil))
         (while dir
-          (setq root dir)
-          (setq dir (locate-dominating-file
+		  (setq root dir)
+		  (setq dir (locate-dominating-file
                      (file-name-directory (directory-file-name dir))
                      "Cargo.toml")))
         (setq dir root)))
